@@ -1,7 +1,3 @@
-# HACK: Sort by increasing absolute value of the real part.
-# This is a hack to get poles ordered for test purposes.
-csort(x) = sort(x, lt = (x,y) -> abs(real(x)) < abs(real(y)))
-
 function test_moving_aaa_spiral(T=Float64, verbose=false)
     clean = false
     # verbose = true

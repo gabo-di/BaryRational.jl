@@ -1,7 +1,7 @@
 # Is z within an isapprox of any x[i] ? (Only for use when we hit a NaN)
 # Assumes that x is sorted from lowest to highest, which is kind of an
 # imposition, but if not, then we are into linear search
-function nearby(z::T, x::AbstractVector{T}) where {T}
+function _nearby(z::T, x::AbstractVector{T}) where {T}
     ord = T <: Complex ? cplxord : identity
     top = lastindex(x)
     bot = firstindex(x)
@@ -12,14 +12,23 @@ function nearby(z::T, x::AbstractVector{T}) where {T}
         elseif ord(z) < ord(x[mid])
             top = mid
         else
-            return mid
+            return mid, nothing
         end
         mid = bot + div(top-bot, 2)
     end
-    isapprox(x[bot], z) && return bot
-    isapprox(x[top], z) && return top
-    println(z, "  ", x[bot], "  ", x[top])
-    error(z, " not found in x")
+    isapprox(x[bot], z) && return bot, nothing
+    isapprox(x[top], z) && return top, nothing
+    return bot, top
+end
+
+function nearby(z::T, x::AbstractVector{T}) where {T}
+    idx_0, idx_1 = _nearby(z, x)  
+    if isnothing(idx_1)
+        return idx_0
+    else
+        println(z, "  ", x[idx_0], "  ", x[idx_1])
+        error(z, " not found in x")
+    end
 end
 
 

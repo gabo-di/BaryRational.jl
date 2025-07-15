@@ -1,6 +1,6 @@
 module BaryRational
 export FHInterp, bary, chebpts, floater_weights, lagrange_weights
-export aaa, prz, deriv
+export aaa, prz, deriv, movingAAAapprox
 
 using GenericLinearAlgebra
 using GenericSchur
@@ -24,6 +24,7 @@ include("weights.jl")
 include("bary.jl")
 include("aaa.jl")
 include("derivatives.jl")
+include("movingaaa.jl")
 
 function FHInterp(x::AbstractVector{T}, f::AbstractVector{T}; order::Int=0, grid=false) where {T}
     if grid

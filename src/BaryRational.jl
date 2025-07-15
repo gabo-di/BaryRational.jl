@@ -1,6 +1,6 @@
 module BaryRational
 export FHInterp, bary, chebpts, floater_weights, lagrange_weights
-export aaa, prz, deriv, movingAAAapprox
+export aaa, prz, deriv, movingAAAapprox, update_movingaaa!
 
 using GenericLinearAlgebra
 using GenericSchur

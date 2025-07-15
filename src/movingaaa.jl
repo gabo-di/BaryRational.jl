@@ -85,7 +85,7 @@ function movingAAAapprox(Z, F; tol=1e-13, mmax=150,
 end
 
 
-function update_aaa!(a::MovingAAAapprox, Z, F)
+function update_movingaaa!(a::MovingAAAapprox, Z, F)
     # assume that z has the same order than a.X
     m = a.m
     _j = a.J[1:m]

@@ -7,6 +7,7 @@ include("test_aaa.jl")
 include("test_fh.jl")
 include("test_bary.jl")
 include("test_deriv.jl")
+include("test_movingaaa.jl")
 
 @testset "BaryRational Tests" begin
 
@@ -57,5 +58,9 @@ end
 end
 
 include("test_continuum.jl")
+
+@testset "Moving aaa" begin
+    test_moving_aaa_spiral()
+end
 
 end

@@ -60,7 +60,7 @@ end
 include("test_continuum.jl")
 
 @testset "Moving aaa" begin
-    test_moving_aaa_spiral()
+    @test test_moving_aaa_spiral()
 end
 
 end

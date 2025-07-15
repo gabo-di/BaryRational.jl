@@ -1,5 +1,4 @@
 # so x can be real while f and w are complex
-using Infiltrator
 struct MovingAAAapprox{T,W} <: BRInterp
     m::Int # m <= M amount of support points
     X::AbstractVector{T} # support points, fixed size M

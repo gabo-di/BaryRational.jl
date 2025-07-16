@@ -100,16 +100,3 @@ function update_movingaaa!(a::MovingAAAapprox, Z, F)
     a.W .= compute_weights(m, a.J[m+1:end], a.A)
     return nothing
 end
-
-# TODO
-# 1. see fit of gaussian, polynomial (data only in x, on x y, which point is more probable)
-#       pol fit is nice with few points, gaussian not, it uses the one that is further from mean(f)
-# 1. see if I can add and delete elements of vector on struct
-#       I can
-#
-# 1. do not move the points order on movingAAAapprox, use array permutations and views
-    # i. we need J vector on the struct 
-        #  done but maybe change A so the W is the same as in aaa
-# 1. maybe check bary and derivative functions so they use each index and are compatible with movingAAAapprox 
-#       maybe not necesary, seems to have good loops?
-# 1. re fit of movingAAAapprox

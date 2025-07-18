@@ -9,6 +9,7 @@ struct AAAapprox{T <: AbstractArray, W <: AbstractArray} <: BRInterp
     f::W
     w::W
     errvec   # Interesting, but consider removing?
+    _j::AbstractArray{Int}
 end
 
 # NB: we don't sort errvec because that is just a history of the errors per
@@ -16,7 +17,7 @@ end
 function Base.sort!(a::AAAapprox)
     ord = eltype(a.x) <: Complex ? cplxord : identity
     perm = sortperm(a.x, by=ord)
-    permute!.((a.x, a.f, a.w), (perm,))
+    permute!.((a.x, a.f, a.w, a._j), (perm,))
 end
 
 # In this version zz can be a scalar or a vector. BUT: do not make the mistake
@@ -166,13 +167,14 @@ function aaa(Z, F; tol=1e-13, mmax=150,
     # approximation which will give us a better approximation that is
     # faster to compute. Note that we must truncate A, reset J, and then
     # recompute the weights for this smaller size.
+    _j = jtrunc
     if m == mmax
         idx = argmin(i -> real(errvec[i]), eachindex(errvec))
         if idx != mmax # if min error is at mmax, do nothing
             verbose && println("Hit max iters. Truncating approximation at $idx.")
             J = deleteat!([1:M;], sort(jtrunc))
             w = compute_weights(idx, J, @views(A[:, 1:idx]))
-            for v in (z, f, errvec)
+            for v in (z, f, errvec, _j)
                 deleteat!(v, idx+1:mmax)
             end
         end
@@ -180,11 +182,11 @@ function aaa(Z, F; tol=1e-13, mmax=150,
 
     # Remove the support points with zero weight.
     izero = findall(==(T(0)), w)
-    for v in (z, f, w, errvec)
+    for v in (z, f, w, errvec, _j)
         deleteat!(v, izero)
     end
 
-    r = AAAapprox(z, f, w, errvec)
+    r = AAAapprox(z, f, w, errvec, _j)
 
     # We must sort if we plan on using bary rather than reval.
     do_sort && sort!(r)
@@ -260,7 +262,7 @@ end
 # more or less match the Chebfun version.
 function cleanup!(::Val{1}, r, Zp::AbstractVector{T}, Fp::AbstractVector{T};
                   verbose=false, cleanup_tol=1e-13) where {T}
-    z, f, w = copy(r.x), copy(r.f), copy(r.w)
+    z, f, w, _j = copy(r.x), copy(r.f), copy(r.w), copy(r._j)
     pol, res, zer = prz(z, f, w)
 
     # Don't modify the original input vectors
@@ -292,6 +294,7 @@ function cleanup!(::Val{1}, r, Zp::AbstractVector{T}, Fp::AbstractVector{T};
         _, jj = findmin(azp)
         deleteat!(z, jj)    # remove nearest support points
         deleteat!(f, jj)
+        deleteat!(_j, jj)
     end
 
     # Remove support points z from sample set:
@@ -310,10 +313,11 @@ function cleanup!(::Val{1}, r, Zp::AbstractVector{T}, Fp::AbstractVector{T};
     w = G.V[:, m]
 
     if length(z) < length(r.x)
-        resize!.((r.x, r.f, r.w), length(z))
+        resize!.((r.x, r.f, r.w, r._j), length(z))
         r.x .= z
         r.f .= f
         r.w .= w
+        r._j .= _j
     end
     return nothing
 end
@@ -329,7 +333,7 @@ end
 # AAA paper. Only calculate the updated z, f, and w
 function cleanup!(::Val{3}, r, Zp::AbstractVector{T}, Fp::AbstractVector{T};
                   verbose=false, cleanup_tol=1e-13) where {T}
-    z, f, w = r.x, r.f, r.w
+    z, f, w, _j = r.x, r.f, r.w, r._j
     pol, res, zer = prz(z, f, w)
     Z = copy(Zp)
     F = copy(Fp)
@@ -346,6 +350,7 @@ function cleanup!(::Val{3}, r, Zp::AbstractVector{T}, Fp::AbstractVector{T};
         jj = findall(isequal(minimum(azp)), azp)
         deleteat!(z, jj)    # remove nearest support points
         deleteat!(f, jj)
+        deleteat!(_j, jj)
     end
 
     # Remove support points z from sample set:
@@ -373,7 +378,7 @@ end
 # on the struct.
 function cleanup!(::Val{2}, r, Zp::AbstractVector{T}, Fp::AbstractVector{T};
                   verbose=false, cleanup_tol=1e-13) where {T}
-    z = copy(r.x); f = copy(r.f); w = copy(r.w)
+    z = copy(r.x); f = copy(r.f); w = copy(r.w); _j = copy(r._j)
     pol, res, zer = prz(z, f, w)
     FT = typeof(abs(T(0)))
     cleanup_tol = FT(cleanup_tol)
@@ -440,6 +445,7 @@ function cleanup!(::Val{2}, r, Zp::AbstractVector{T}, Fp::AbstractVector{T};
             # Remove support point(s):
             deleteat!(z, jj)
             deleteat!(f, jj)
+            deleteat!(_j, jj)
         end
 
         # Remove support points z from sample set:
@@ -467,12 +473,13 @@ function cleanup!(::Val{2}, r, Zp::AbstractVector{T}, Fp::AbstractVector{T};
 
     # reconstruct r
     if length(z) < length(r.x)
-        resize!.((r.x, r.f, r.w), length(z))
+        resize!.((r.x, r.f, r.w, r._j), length(z))
         r.x .= z
         r.f .= f
         r.w .= w
+        r._j .= _j
     end
-    return r
+    return nothing
 end
 
 # Borrowed from https://github.com/complexvariables/RationalFunctionApproximation.jl
@@ -560,6 +567,6 @@ function aaa(
     #     r = AAAapprox(x, y, w)
     # end
 
-    r = AAAapprox(x, y, w, [])
+    r = AAAapprox(x, y, w, [], [])
     return r
 end

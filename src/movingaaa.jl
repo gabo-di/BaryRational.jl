@@ -1,24 +1,13 @@
 # so x can be real while f and w are complex
 struct MovingAAAapprox{T,W} <: BRInterp
     m::Int # m <= M amount of support points
-    X::AbstractVector{T} # support points, fixed size M
-    F::AbstractVector{W} # function values at support points, size M
-    W::AbstractVector{W} # baricentric weights, size m
+    x::AbstractVector{T} # support points, fixed size m
+    f::AbstractVector{W} # function values at support points, size m
+    w::AbstractVector{W} # baricentric weights, size m
     A::AbstractMatrix{W} # M × m Loewner matrix 
-    J::AbstractVector{Int} # permutation vector, size M
+    _j::AbstractVector{Int} # permutation vector, size M
 end
 
-function Base.getproperty(obj::MovingAAAapprox, sym::Symbol)
-    if sym === :f
-        return view(obj.F, obj.J[1:obj.m])
-    elseif sym === :x
-        return view(obj.X, obj.J[1:obj.m])
-    elseif sym === :w
-        return view(obj.W, 1:obj.m)
-    else 
-        return getfield(obj, sym)
-    end
-end
 
 (a::MovingAAAapprox)(zz) = bary(zz, a)
 (a::MovingAAAapprox)(zz::T) where {T <: AbstractVector} = bary.(zz, a)
@@ -48,22 +37,19 @@ function movingAAAapprox(Z, F; tol=1e-13, mmax=150,
     m = length(r.x) # number of points used on the interpolation  
 
     A  = Matrix{T}(undef, M, m)
-    C  = Matrix{T}(undef, M, m)
     J = zeros(Int,M)
     j_notsupport = m
 
 
     for ii in eachindex(Z) 
         z = Z[ii]
-        idx_0, idx_1 = _nearby(z, r.x)
-        if isnothing(idx_1)
+        idx_0 = findfirst(==(ii), r._j)
+        if !isnothing(idx_0)
             # the point is on the support
             J[idx_0] = ii
-            # next column of Cauchy matrix
-            C[:, idx_0] = T(1) ./ (Z .- z)
 
             # Loewner matrix
-            A[:, idx_0] = (F .- F[ii]) .* C[:, idx_0]
+            A[:, idx_0] = (F .- F[ii]) ./ (Z .- z)
         else
             # the point is not on the support
             j_notsupport += 1
@@ -75,8 +61,8 @@ function movingAAAapprox(Z, F; tol=1e-13, mmax=150,
 
 
     return MovingAAAapprox(m, 
-        Z,
-        F,
+        Z[J[1:m]],
+        F[J[1:m]],
         w,
         A,
         J
@@ -84,19 +70,35 @@ function movingAAAapprox(Z, F; tol=1e-13, mmax=150,
 end
 
 
-function update_movingaaa!(a::MovingAAAapprox, Z, F)
+# note that is not standard, we some times modify a and return nothing and 
+# some times modify a and return the real response
+function update_movingaaa!(a::MovingAAAapprox, Z, F; tol=1e-13, mmax=150,
+             verbose=false, clean=false, do_sort=true, cleanup_tol=1e-13)
     # assume that z has the same order than a.X
     m = a.m
-    _j = a.J[1:m]
+    _j = a._j[1:m]
     for ii in eachindex(Z)
-        a.X[ii] = Z[ii]
-        a.F[ii] = F[ii]
         k = findfirst(==(ii), _j)
         if !isnothing(k)
+            a.x[k] = Z[ii]
+            a.f[k] = F[ii]
             # this is a support point so actualize stuff
             a.A[:,k] = (F .- F[ii]) ./ (Z .- Z[ii])
         end
     end
-    a.W .= compute_weights(m, a.J[m+1:end], a.A)
+    a.w .= compute_weights(m, a._j[m+1:end], a.A)
+    
+    # compute error
+    abstol = tol * norm(F, Inf)
+    err = norm(a(Z[a._j[m+1:end]]) - F[a._j[m+1:end]])
+    if err > abstol
+        verbose && println("err = ",err," bigger than tolerance, calling aaa algorihtm")
+        r = movingAAAapprox(Z, F; tol=tol, mmax=mmax,
+             verbose=verbose, clean=clean, do_sort=do_sort, cleanup_tol=cleanup_tol)
+        return r
+    else
+        verbose && println("err = ",err," less than tolerance, not calling aaa algorihtm")
+    end
+
     return nothing
 end

@@ -1,5 +1,5 @@
 function test_moving_aaa_spiral(T=Float64, verbose=false)
-    clean = false
+    clean = 0 
     # verbose = true
     zz = exp.(range(-0.5, complex(0.5, 15*pi), length=20));
 
@@ -37,7 +37,7 @@ function test_moving_aaa_spiral(T=Float64, verbose=false)
 end
 
 function test_moving_aaa_refit_aaa(T=Float64, verbose=false)
-    clean = false
+    clean = 0
     # verbose = true
     zz = exp.(range(-0.5, complex(0.5, 15*pi), length=20));
 

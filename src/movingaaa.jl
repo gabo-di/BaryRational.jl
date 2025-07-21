@@ -13,7 +13,7 @@ end
 (a::MovingAAAapprox)(zz::T) where {T <: AbstractVector} = bary.(zz, a)
 
 function movingAAAapprox(Z, F; tol=1e-13, mmax=150,
-             verbose=false, clean=false, do_sort=true, cleanup_tol=1e-13)
+             verbose=false, clean=0, do_sort=true, cleanup_tol=1e-13)
 
     U = eltype(Z)
     S = eltype(F)
@@ -73,7 +73,7 @@ end
 # note that is not standard, we some times modify a and return nothing and 
 # some times modify a and return the real response
 function update_movingaaa!(a::MovingAAAapprox, Z, F; tol=1e-13, mmax=150,
-             verbose=false, clean=false, do_sort=true, cleanup_tol=1e-13)
+             verbose=false, clean=0, do_sort=true, cleanup_tol=1e-13)
     # assume that z has the same order than a.X
     m = a.m
     _j = a._j[1:m]
